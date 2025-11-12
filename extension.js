@@ -9,6 +9,7 @@ const PerformanceScanner = require('./lib/performance-scanner');
 const APIScanner = require('./lib/api-scanner');
 const OOPScanner = require('./lib/oop-scanner');
 const ChatParticipant = require('./lib/chat-participant');
+const ContextLoader = require('./lib/context-loader');
 
 let securityScanner;
 let errorHandlingScanner;
@@ -20,6 +21,8 @@ let oopScanner;
 let autoFixer;
 let licenseValidator;
 let diagnosticCollection;
+let contextLoader;
+let projectContext;
 
 /**
  * Activates the extension
@@ -37,6 +40,27 @@ function activate(context) {
     oopScanner = new OOPScanner();
     autoFixer = new AutoFixer();
     licenseValidator = new LicenseValidator(context);
+    contextLoader = new ContextLoader();
+    
+    // Auto-load project context from memory-bank
+    contextLoader.loadProjectContext().then(ctx => {
+        if (ctx) {
+            projectContext = ctx;
+            console.log('✅ AIDevPilot: Project context loaded from memory-bank');
+            
+            // Show notification (optional)
+            vscode.window.showInformationMessage(
+                `🤖 AIDevPilot: Loaded ${ctx.codingPatterns.length} patterns, ${ctx.technologies.length} technologies`,
+                'View Context'
+            ).then(selection => {
+                if (selection === 'View Context') {
+                    showContextWelcome(context);
+                }
+            });
+        } else {
+            console.log('ℹ️ AIDevPilot: No memory-bank found, using default patterns');
+        }
+    });
     
     // Initialize chat participant
     const chatParticipant = new ChatParticipant({
@@ -587,6 +611,62 @@ function getDashboardHTML() {
  * Show context welcome message on startup
  */
 async function showContextWelcome(context) {
+    // If we have loaded project context from memory-bank, show it
+    if (projectContext && contextLoader) {
+        const formatted = contextLoader.formatContext();
+        
+        const panel = vscode.window.createWebviewPanel(
+            'aidevpilotContext',
+            '📋 AIDevPilot - Project Context',
+            vscode.ViewColumn.Two,
+            {}
+        );
+
+        panel.webview.html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body {
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        padding: 20px;
+                        background: #1e1e1e;
+                        color: #d4d4d4;
+                    }
+                    h1 { color: #569cd6; }
+                    h2 { color: #4ec9b0; margin-top: 20px; }
+                    ul { list-style-type: none; padding-left: 0; }
+                    li { 
+                        margin: 5px 0; 
+                        padding: 8px 12px;
+                        background: #252526;
+                        border-left: 3px solid #007acc;
+                        border-radius: 3px;
+                    }
+                    .badge {
+                        display: inline-block;
+                        padding: 4px 8px;
+                        background: #0e639c;
+                        border-radius: 3px;
+                        font-size: 12px;
+                        margin-right: 8px;
+                    }
+                </style>
+            </head>
+            <body>
+                <h1>🤖 AIDevPilot - Project Context Loaded</h1>
+                <p>Context automatically loaded from <code>memory-bank/</code></p>
+                ${formatted.replace(/\n/g, '<br>').replace(/^## (.+)$/gm, '<h2>$1</h2>').replace(/^- (.+)$/gm, '<li>$1</li>')}
+                <hr>
+                <p><strong>💡 Smart Scanning:</strong> AIDevPilot now knows your project patterns and will give context-aware suggestions!</p>
+            </body>
+            </html>
+        `;
+
+        return;
+    }
+
+    // Fallback to old behavior
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders) return;
 
