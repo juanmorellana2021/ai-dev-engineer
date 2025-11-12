@@ -1,0 +1,9 @@
+node_modules/
+*.vsix
+!ai-dev-engineer-2.0.0.vsix
+.vscode/
+.DS_Store
+.env
+*.log
+dist/
+out/
