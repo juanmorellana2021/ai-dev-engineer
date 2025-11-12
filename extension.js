@@ -7,6 +7,7 @@ const ArchitectureScanner = require('./lib/architecture-scanner');
 const DatabaseScanner = require('./lib/database-scanner');
 const PerformanceScanner = require('./lib/performance-scanner');
 const APIScanner = require('./lib/api-scanner');
+const OOPScanner = require('./lib/oop-scanner');
 
 let securityScanner;
 let errorHandlingScanner;
@@ -14,6 +15,7 @@ let architectureScanner;
 let databaseScanner;
 let performanceScanner;
 let apiScanner;
+let oopScanner;
 let autoFixer;
 let licenseValidator;
 let diagnosticCollection;
@@ -31,6 +33,7 @@ function activate(context) {
     databaseScanner = new DatabaseScanner();
     performanceScanner = new PerformanceScanner();
     apiScanner = new APIScanner();
+    oopScanner = new OOPScanner();
     autoFixer = new AutoFixer();
     licenseValidator = new LicenseValidator(context);
     
@@ -61,28 +64,31 @@ function activate(context) {
         // Show progress
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: "AI Dev Engineer scanning code...",
+            title: "AIDevPilot scanning code...",
             cancellable: false
         }, async (progress) => {
             progress.report({ increment: 0, message: "Security..." });
 
-            // Run ALL scanners
+            // Run ALL 7 scanners
             const securityIssues = securityScanner.scan(fileContent, filePath);
-            progress.report({ increment: 20, message: "Error handling..." });
+            progress.report({ increment: 14, message: "Error handling..." });
             
             const errorIssues = errorHandlingScanner.scan(fileContent, filePath);
-            progress.report({ increment: 40, message: "Architecture..." });
+            progress.report({ increment: 28, message: "Architecture..." });
             
             const archIssues = architectureScanner.scan(fileContent, filePath);
-            progress.report({ increment: 60, message: "Database..." });
+            progress.report({ increment: 42, message: "Database..." });
             
             const dbIssues = databaseScanner.scan(fileContent, filePath);
-            progress.report({ increment: 80, message: "Performance..." });
+            progress.report({ increment: 56, message: "Performance..." });
             
             const perfIssues = performanceScanner.scan(fileContent, filePath);
-            progress.report({ increment: 90, message: "API design..." });
+            progress.report({ increment: 70, message: "API design..." });
             
             const apiIssues = apiScanner.scan(fileContent, filePath);
+            progress.report({ increment: 85, message: "OOP principles..." });
+            
+            const oopIssues = oopScanner.scan(fileContent, filePath);
             
             // Combine all issues
             const allIssues = [
@@ -91,7 +97,8 @@ function activate(context) {
                 ...archIssues,
                 ...dbIssues,
                 ...perfIssues,
-                ...apiIssues
+                ...apiIssues,
+                ...oopIssues
             ];
             
             progress.report({ increment: 100 });
@@ -111,7 +118,8 @@ function activate(context) {
                     ARCHITECTURE: allIssues.filter(i => i.type === 'ARCHITECTURE').length,
                     DATABASE: allIssues.filter(i => i.type === 'DATABASE').length,
                     PERFORMANCE: allIssues.filter(i => i.type === 'PERFORMANCE').length,
-                    API_DESIGN: allIssues.filter(i => i.type === 'API_DESIGN').length
+                    API_DESIGN: allIssues.filter(i => i.type === 'API_DESIGN').length,
+                    OOP: allIssues.filter(i => i.type === 'OOP').length
                 };
                 
                 const summary = Object.entries(byType)

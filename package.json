@@ -1,8 +1,8 @@
 {
-  "name": "ai-dev-engineer",
-  "displayName": "AI Dev Engineer",
-  "description": "Your senior dev code reviewer - scans security, architecture, error handling, database, performance & API design. Auto-fix with best practices.",
-  "version": "2.0.0",
+  "name": "aidevpilot",
+  "displayName": "AIDevPilot",
+  "description": "Your AI code quality co-pilot - 70+ patterns across security, architecture, error handling, database, performance, API design & OOP principles. Auto-fix included.",
+  "version": "2.1.0",
   "publisher": "juanmorellana",
   "engines": {
     "vscode": "^1.80.0"
@@ -14,13 +14,17 @@
   ],
   "keywords": [
     "ai",
-    "developer",
-    "security",
+    "copilot",
     "code quality",
+    "security",
     "auto-fix",
+    "linter",
+    "oop",
+    "solid",
     "best practices",
     "javascript",
-    "php"
+    "php",
+    "architecture"
   ],
   "activationEvents": [
     "onLanguage:javascript",
@@ -99,7 +103,7 @@
       }
     ],
     "configuration": {
-      "title": "AI Dev Engineer",
+      "title": "AIDevPilot",
       "properties": {
         "aiDevEngineer.licenseKey": {
           "type": "string",
@@ -139,7 +143,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/juanmorellana2021/revolutionary-hotel-platform"
+    "url": "https://github.com/juanmorellana2021/ai-dev-engineer"
   },
   "license": "MIT"
 }
