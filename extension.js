@@ -8,6 +8,7 @@ const DatabaseScanner = require('./lib/database-scanner');
 const PerformanceScanner = require('./lib/performance-scanner');
 const APIScanner = require('./lib/api-scanner');
 const OOPScanner = require('./lib/oop-scanner');
+const ChatParticipant = require('./lib/chat-participant');
 
 let securityScanner;
 let errorHandlingScanner;
@@ -36,6 +37,18 @@ function activate(context) {
     oopScanner = new OOPScanner();
     autoFixer = new AutoFixer();
     licenseValidator = new LicenseValidator(context);
+    
+    // Initialize chat participant
+    const chatParticipant = new ChatParticipant({
+        securityScanner,
+        errorHandlingScanner,
+        architectureScanner,
+        databaseScanner,
+        performanceScanner,
+        apiScanner,
+        oopScanner
+    }, autoFixer);
+    chatParticipant.register(context);
     
     // Create diagnostic collection for showing errors in editor
     diagnosticCollection = vscode.languages.createDiagnosticCollection('aiDevEngineer');
@@ -434,68 +447,6 @@ Ready to continue! What should we work on?`;
         }
     });
 
-    // ==================== CHAT PARTICIPANT: Auto-Context ====================
-    const chatParticipant = vscode.chat.createChatParticipant('ai-dev-engineer.context', async (request, chatContext, stream, token) => {
-        // Load project context
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        
-        if (!workspaceFolders) {
-            stream.markdown('No workspace folder open. Please open a project folder first.');
-            return;
-        }
-
-        const contextFilePath = vscode.Uri.joinPath(
-            workspaceFolders[0].uri,
-            '.vscode',
-            'ai-dev-engineer.json'
-        );
-
-        let contextData;
-        try {
-            const fileContent = await vscode.workspace.fs.readFile(contextFilePath);
-            contextData = JSON.parse(fileContent.toString());
-        } catch (error) {
-            stream.markdown('⚠️ No context file found. Create `.vscode/ai-dev-engineer.json` to track your project progress.');
-            return;
-        }
-
-        // Generate context markdown
-        const completedPages = contextData.improvementPlan?.completedPages || [];
-        const pagesQueue = contextData.improvementPlan?.pagesQueue || [];
-        const lastCompleted = completedPages.length > 0 ? completedPages[completedPages.length - 1].page : 'None';
-        const nextPage = pagesQueue.length > 0 ? pagesQueue[0] : 'TBD';
-
-        stream.markdown(`## 📋 ${contextData.projectName || 'Project'} Context\n\n`);
-        stream.markdown(`**Methodology:** ${contextData.improvementPlan?.methodology || 'Page-by-page improvements'}\n\n`);
-        stream.markdown(`**Current Phase:** ${contextData.improvementPlan?.currentPhase || 'Setup'}\n\n`);
-        stream.markdown(`**Last Completed:** ${lastCompleted}\n\n`);
-        stream.markdown(`**Next Target:** ${nextPage}\n\n`);
-        
-        if (completedPages.length > 0) {
-            stream.markdown(`### ✅ Completed Pages (${completedPages.length}):\n\n`);
-            completedPages.slice(-5).forEach(p => {
-                stream.markdown(`- **${p.page}** (${p.date}): ${p.improvements?.slice(0, 2).join(', ') || 'Improvements applied'}\n`);
-            });
-            stream.markdown('\n');
-        }
-
-        const securityPatterns = Object.keys(contextData.securityPatterns || {});
-        if (securityPatterns.length > 0) {
-            stream.markdown(`### 🔒 Security Patterns:\n${securityPatterns.join(', ')}\n\n`);
-        }
-
-        if (contextData.nextSteps && contextData.nextSteps.length > 0) {
-            stream.markdown(`### ⏭️ Next Steps:\n\n`);
-            contextData.nextSteps.slice(0, 3).forEach((step, i) => {
-                stream.markdown(`${i + 1}. ${step}\n`);
-            });
-        }
-
-        stream.markdown('\n\n---\n\n**Ready to continue!** What should we work on?\n');
-    });
-
-    chatParticipant.iconPath = new vscode.ThemeIcon('rocket');
-
     // Register all commands
     context.subscriptions.push(
         scanFileCommand,
@@ -504,8 +455,7 @@ Ready to continue! What should we work on?`;
         generateTestsCommand,
         showDashboardCommand,
         loadContextCommand,
-        autoScanDisposable,
-        chatParticipant
+        autoScanDisposable
     );
 }
 

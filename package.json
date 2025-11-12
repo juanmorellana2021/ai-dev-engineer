@@ -4,6 +4,7 @@
   "description": "Your AI code quality co-pilot - 70+ patterns across security, architecture, error handling, database, performance, API design & OOP principles. Auto-fix included.",
   "version": "2.1.0",
   "publisher": "juanmorellana",
+  "icon": "icon.png",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -61,11 +62,29 @@
     ],
     "chatParticipants": [
       {
-        "id": "ai-dev-engineer.context",
-        "name": "context",
-        "fullName": "AI Dev Context",
-        "description": "Loads your project context automatically",
-        "isSticky": true
+        "id": "aidevpilot.chat",
+        "name": "aidevpilot",
+        "fullName": "AIDevPilot",
+        "description": "Your AI code quality co-pilot - scan, fix, and improve your code",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "scan",
+            "description": "Scan current file for issues"
+          },
+          {
+            "name": "fix",
+            "description": "Auto-fix issues in current file"
+          },
+          {
+            "name": "dashboard",
+            "description": "Show code quality dashboard"
+          },
+          {
+            "name": "test",
+            "description": "Generate unit tests"
+          }
+        ]
       }
     ],
     "menus": {
