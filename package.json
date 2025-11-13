@@ -1,8 +1,8 @@
 {
   "name": "aidevpilot",
   "displayName": "AIDevPilot",
-  "description": "Your AI code quality co-pilot - 70+ patterns across security, architecture, error handling, database, performance, API design & OOP principles. Auto-fix included.",
-  "version": "2.1.0",
+  "description": "Full-stack validation AI - 10 specialized agents validate frontend, backend, database, security, and architecture. Catches bugs before deployment. Auto-fix included.",
+  "version": "3.0.0",
   "publisher": "juanmorellana",
   "icon": "icon.png",
   "engines": {
@@ -16,6 +16,9 @@
   "keywords": [
     "ai",
     "copilot",
+    "full-stack validation",
+    "backend validator",
+    "database validator",
     "code quality",
     "security",
     "auto-fix",
@@ -25,7 +28,8 @@
     "best practices",
     "javascript",
     "php",
-    "architecture"
+    "architecture",
+    "bug prevention"
   ],
   "activationEvents": [
     "onLanguage:javascript",
@@ -58,6 +62,14 @@
       {
         "command": "aiDevEngineer.loadContext",
         "title": "AI Dev: Load Project Context (Copy to Clipboard)"
+      },
+      {
+        "command": "aiDevEngineer.validateBackend",
+        "title": "AI Dev: Validate Backend Handlers"
+      },
+      {
+        "command": "aiDevEngineer.validateDatabase",
+        "title": "AI Dev: Validate Database Queries"
       }
     ],
     "chatParticipants": [

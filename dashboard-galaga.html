@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIDevPilot Swarm - Galaga Mode</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            image-rendering: pixelated;
+        }
+
+        #gameCanvas {
+            display: block;
+            margin: 0 auto;
+            background: #000;
+            border: 4px solid #0f0;
+        }
+
+        .hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            color: #0ff;
+            font-size: 20px;
+            text-shadow: 0 0 10px #0ff;
+            font-weight: bold;
+            z-index: 10;
+        }
+
+        .hud-item {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            border: 2px solid #0ff;
+            border-radius: 5px;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            background: linear-gradient(180deg, #0f0 0%, #060 100%);
+            border: 3px solid #0f0;
+            color: #000;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-family: 'Courier New', monospace;
+            box-shadow: 0 0 20px #0f0;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: linear-gradient(180deg, #0ff 0%, #088 100%);
+            border-color: #0ff;
+            box-shadow: 0 0 30px #0ff;
+            transform: scale(1.1);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            filter: grayscale(100%);
+        }
+
+        .btn.danger {
+            background: linear-gradient(180deg, #f00 0%, #600 100%);
+            border-color: #f00;
+            box-shadow: 0 0 20px #f00;
+        }
+
+        .btn.danger:hover {
+            background: linear-gradient(180deg, #ff0 0%, #880 100%);
+            border-color: #ff0;
+            box-shadow: 0 0 30px #ff0;
+        }
+
+        .log {
+            position: absolute;
+            top: 80px;
+            right: 10px;
+            width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #0f0;
+            padding: 10px;
+            font-size: 12px;
+            color: #0f0;
+        }
+
+        .log-item {
+            margin-bottom: 8px;
+            padding: 5px;
+            border-left: 3px solid #0f0;
+            animation: fadeIn 0.3s;
+        }
+
+        .log-item.warning {
+            border-left-color: #ff0;
+            color: #ff0;
+        }
+
+        .log-item.error {
+            border-left-color: #f00;
+            color: #f00;
+        }
+
+        .log-item.success {
+            border-left-color: #0ff;
+            color: #0ff;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            border: 4px solid #f00;
+            padding: 40px;
+            text-align: center;
+            display: none;
+            z-index: 100;
+        }
+
+        .game-over h1 {
+            font-size: 48px;
+            color: #f00;
+            text-shadow: 0 0 20px #f00;
+            margin-bottom: 20px;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .title-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+
+        .title-screen h1 {
+            font-size: 64px;
+            color: #0ff;
+            text-shadow: 0 0 30px #0ff;
+            margin-bottom: 20px;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 49%, 100% { opacity: 1; }
+            50%, 99% { opacity: 0; }
+        }
+
+        .title-screen .subtitle {
+            font-size: 24px;
+            color: #0f0;
+            margin-bottom: 40px;
+        }
+
+        .instruction {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 255, 255, 0.9);
+            border: 4px solid #0ff;
+            padding: 30px 50px;
+            text-align: center;
+            font-size: 24px;
+            color: #000;
+            font-weight: bold;
+            z-index: 100;
+            animation: pulse 1s infinite;
+            display: none;
+        }
+
+        .start-btn {
+            padding: 20px 60px;
+            font-size: 24px;
+            background: linear-gradient(180deg, #0ff 0%, #088 100%);
+            border: 4px solid #0ff;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 0 40px #0ff;
+            animation: float 2s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="title-screen" id="titleScreen">
+        <h1>🚀 AIDEVPILOT SWARM 🚀</h1>
+        <div class="subtitle">GALAGA MODE</div>
+        <button class="start-btn" onclick="startGame()">INSERT COIN</button>
+        <div style="margin-top: 40px; color: #666; font-size: 14px;">
+            11 AGENTS • ∞ BUGS • 1 MISSION
+        </div>
+    </div>
+
+    <div class="instruction" id="instruction">
+        👆 CLICK "SCAN WAVE" TO START!
+    </div>
+
+    <div class="hud">
+        <div class="hud-item">FILE: <span id="fileName">calendar_view_modern.php</span></div>
+        <div class="hud-item">SCORE: <span id="score">0</span></div>
+        <div class="hud-item">BUGS DESTROYED: <span id="bugsKilled">0</span></div>
+        <div class="hud-item">WAVE: <span id="wave">1</span></div>
+        <div class="hud-item">AGENTS: <span id="agentsAlive">11</span></div>
+    </div>
+
+    <div style="position: absolute; top: 60px; left: 50%; transform: translateX(-50%); text-align: center; z-index: 10;">
+        <div style="background: rgba(0, 0, 0, 0.9); border: 3px solid #0ff; padding: 20px 40px; border-radius: 10px; box-shadow: 0 0 20px #0ff;">
+            <div style="color: #0ff; font-size: 18px; font-weight: bold; margin-bottom: 10px;">
+                👨‍✈️ COMMANDER AGENT
+            </div>
+            <div id="commanderMessage" style="color: #ff0; font-size: 16px; margin-bottom: 15px; min-height: 24px;">
+                Standing by for orders...
+            </div>
+            <div style="border-top: 2px solid #0ff; padding-top: 10px; margin-top: 10px;">
+                <div style="color: #888; font-size: 12px; margin-bottom: 5px;">TARGET FILE</div>
+                <div id="currentFile" style="color: #0f0; font-size: 18px; font-weight: bold;">calendar_view_modern.php</div>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas" width="1200" height="800"></canvas>
+
+    <div class="log" id="log">
+        <div class="log-item success">🎮 SYSTEM READY - Press INSERT COIN to begin</div>
+    </div>
+
+    <div class="controls">
+        <button class="btn" onclick="scanWave()" id="scanBtn">🔍 SCAN WAVE (Find Bugs)</button>
+        <button class="btn" onclick="fixAll()" id="fixBtn" disabled>🔧 FIX ALL (Destroy All)</button>
+        <button class="btn" onclick="nextWave()" id="nextBtn" disabled style="display:none;">⏭️ NEXT WAVE</button>
+    </div>
+
+    <div class="game-over" id="gameOver">
+        <h1>MISSION COMPLETE!</h1>
+        <p style="font-size: 24px; color: #0f0; margin: 20px 0;">
+            ALL BUGS DESTROYED<br>
+            FINAL SCORE: <span id="finalScore">0</span>
+        </p>
+        <button class="btn" onclick="restartGame()">PLAY AGAIN</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Sound effects using Web Audio API
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(frequency, duration, type = 'sine') {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = type;
+            
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + duration);
+        }
+
+        function shootSound() {
+            playSound(800, 0.1, 'square');
+        }
+
+        function explosionSound() {
+            playSound(100, 0.3, 'sawtooth');
+        }
+
+        function waveStartSound() {
+            playSound(400, 0.2, 'sine');
+            setTimeout(() => playSound(600, 0.2, 'sine'), 100);
+        }
+
+        // Game state
+        let score = 0;
+        let bugsKilled = 0;
+        let wave = 1;
+        let gameRunning = false;
+
+        // Agent ships (11 agents in formation)
+        const agents = [
+            { x: 150, y: 700, name: 'BugHunter', icon: '🔍', color: '#0ff', active: true },
+            { x: 250, y: 700, name: 'BackupFinder', icon: '📚', color: '#0f0', active: true },
+            { x: 350, y: 700, name: 'CodeMerger', icon: '⚔️', color: '#f0f', active: true },
+            { x: 450, y: 700, name: 'InputValidator', icon: '🧹', color: '#ff0', active: true },
+            { x: 550, y: 700, name: 'FormHardener', icon: '🔐', color: '#f80', active: true },
+            { x: 650, y: 700, name: 'UIEnhancer', icon: '🎨', color: '#f0f', active: true },
+            { x: 750, y: 700, name: 'SecurityGuard', icon: '🛡️', color: '#0ff', active: true },
+            { x: 850, y: 700, name: 'Deployer', icon: '🚀', color: '#0f0', active: true },
+            { x: 950, y: 700, name: 'PerfOptimizer', icon: '⚡', color: '#ff0', active: true },
+            { x: 1050, y: 700, name: 'TestGen', icon: '✅', color: '#0f0', active: true },
+            { x: 300, y: 650, name: 'DocWriter', icon: '📝', color: '#0ff', active: true }
+        ];
+
+        // Bugs (issues)
+        let bugs = [];
+        let lasers = [];
+        let explosions = [];
+
+        // Bug types
+        const bugTypes = [
+            { type: 'placeholder', icon: '🐛', color: '#f00', points: 100 },
+            { type: 'sql_injection', icon: '💉', color: '#f80', points: 200 },
+            { type: 'xss', icon: '👾', color: '#f0f', points: 150 },
+            { type: 'csrf', icon: '🔓', color: '#ff0', points: 150 },
+            { type: 'unvalidated', icon: '⚠️', color: '#fa0', points: 100 },
+            { type: 'slow_query', icon: '🐌', color: '#f0f', points: 180 },
+            { type: 'no_tests', icon: '❌', color: '#f00', points: 120 },
+            { type: 'undocumented', icon: '❓', color: '#888', points: 80 }
+        ];
+
+        let scanned = false;
+        let waveCleared = false;
+
+        // Wave descriptions - what each wave targets
+        const waveDescriptions = [
+            { wave: 1, target: 'Security Vulnerabilities', agents: ['BugHunter', 'SecurityGuard'], bugs: ['sql_injection', 'xss', 'csrf'], file: 'calendar_view_modern.php' },
+            { wave: 2, target: 'Input Validation Issues', agents: ['InputValidator', 'FormHardener'], bugs: ['unvalidated', 'csrf'], file: 'room_management.php' },
+            { wave: 3, target: 'Performance Problems', agents: ['PerfOptimizer'], bugs: ['slow_query'], file: 'public_booking.php' },
+            { wave: 4, target: 'Missing Tests', agents: ['TestGen'], bugs: ['no_tests'], file: 'dashboard_server.php' },
+            { wave: 5, target: 'Documentation Gaps', agents: ['DocWriter'], bugs: ['undocumented'], file: 'analytics.php' },
+            { wave: 6, target: 'Code Quality Mixed', agents: ['BugHunter', 'UIEnhancer'], bugs: ['placeholder', 'unvalidated'], file: 'AiniCoinSystem.php' },
+            { wave: 7, target: 'Full System Scan', agents: ['ALL'], bugs: ['ALL'], file: 'ENTIRE CODEBASE' }
+        ];
+
+        function commanderSpeak(message) {
+            const commander = document.getElementById('commanderMessage');
+            commander.style.color = '#ff0';
+            commander.textContent = message;
+            
+            setTimeout(() => {
+                commander.style.color = '#0f0';
+            }, 3000);
+        }
+
+        function getWaveInfo(waveNum) {
+            const index = (waveNum - 1) % waveDescriptions.length;
+            return waveDescriptions[index];
+        }
+
+        function startGame() {
+            document.getElementById('titleScreen').style.display = 'none';
+            gameRunning = true;
+            
+            const waveInfo = getWaveInfo(wave);
+            commanderSpeak(`🎮 Mission Start! Wave ${wave}: ${waveInfo.target}`);
+            
+            // Spawn bugs immediately so player can see them
+            spawnBugWave();
+            gameLoop();
+            
+            addLog('🎮 GAME START - Defend your code!', 'success');
+            addLog(`📋 Wave ${wave} Target: ${waveInfo.target}`, 'warning');
+            addLog(`🤖 Active Agents: ${waveInfo.agents.join(', ')}`, 'success');
+            addLog('👉 Click SCAN WAVE to analyze bugs!', 'warning');
+            
+            // Show instruction
+            setTimeout(() => {
+                document.getElementById('instruction').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('instruction').style.display = 'none';
+                }, 3000);
+            }, 500);
+        }
+
+        function spawnBugWave() {
+            bugs = [];
+            const waveInfo = waveDescriptions[(wave - 1) % waveDescriptions.length];
+            const bugsPerWave = 5 + (wave * 2);
+            
+            for (let i = 0; i < bugsPerWave; i++) {
+                const bugType = bugTypes[Math.floor(Math.random() * bugTypes.length)];
+                bugs.push({
+                    x: 100 + (i * 100) % 1000,
+                    y: -50 - (Math.floor(i / 10) * 60),
+                    type: bugType.type,
+                    icon: bugType.icon,
+                    color: bugType.color,
+                    points: bugType.points,
+                    speed: 0.5 + (wave * 0.1),
+                    alive: true
+                });
+            }
+            
+            waveStartSound();
+            updateHUD();
+            addLog(`👾 WAVE ${wave} - ${waveInfo.file}`, 'warning');
+            addLog(`📋 ${waveInfo.desc}`, 'warning');
+            addLog(`🐛 ${bugsPerWave} bugs detected in this file`, 'warning');
+        }
+
+        function scanWave() {
+            if (scanned) return;
+            
+            const waveInfo = waveDescriptions[(wave - 1) % waveDescriptions.length];
+            addLog(`🔍 SCANNING ${waveInfo.file}...`, 'warning');
+            document.getElementById('scanBtn').disabled = true;
+            
+            setTimeout(() => {
+                const foundBugs = bugs.filter(b => b.alive).length;
+                addLog(`✅ SCAN COMPLETE - ${foundBugs} bugs detected`, 'success');
+                
+                // Highlight all bugs
+                bugs.forEach(bug => {
+                    if (bug.alive) {
+                        bug.highlighted = true;
+                        setTimeout(() => bug.highlighted = false, 3000);
+                    }
+                });
+
+                // Enable Fix All button
+                scanned = true;
+                document.getElementById('fixBtn').disabled = false;
+                document.getElementById('instruction').innerHTML = '👆 NOW CLICK "FIX ALL" TO DESTROY!';
+                document.getElementById('instruction').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('instruction').style.display = 'none';
+                }, 3000);
+            }, 1000);
+        }
+
+        function fixAll() {
+            if (!scanned) {
+                commanderSpeak('⚠️ Cannot fix without scan data! Scan first!');
+                addLog('⚠️ Must SCAN first before fixing!', 'error');
+                return;
+            }
+
+            const waveInfo = getWaveInfo(wave);
+            commanderSpeak(`🔧 All units engage! Targeting ${waveInfo.target}!`);
+            addLog('🔧 FIX ALL activated - All agents firing!', 'warning');
+            document.getElementById('fixBtn').disabled = true;
+            
+            agents.forEach((agent, index) => {
+                if (agent.active) {
+                    setTimeout(() => {
+                        shootLaser(agent);
+                    }, index * 100);
+                }
+            });
+        }
+
+        function shootLaser(agent) {
+            lasers.push({
+                x: agent.x + 15,
+                y: agent.y,
+                color: agent.color,
+                speed: 8
+            });
+            
+            shootSound();
+            addLog(`${agent.icon} ${agent.name} firing!`, 'success');
+        }
+
+        function nextWave() {
+            wave++;
+            scanned = false;
+            waveCleared = false;
+            updateHUD();
+            spawnBugWave();
+            
+            const waveInfo = getWaveInfo(wave);
+            commanderSpeak(`⏭️ Wave ${wave} incoming! Target: ${waveInfo.target}`);
+            
+            // Reset buttons
+            document.getElementById('scanBtn').disabled = false;
+            document.getElementById('fixBtn').disabled = true;
+            document.getElementById('nextBtn').style.display = 'none';
+            
+            addLog(`⏭️ WAVE ${wave} starting...`, 'warning');
+            addLog(`📋 Target: ${waveInfo.target}`, 'warning');
+            addLog(`🤖 Lead Agents: ${waveInfo.agents.join(', ')}`, 'success');
+        }
+
+        function updateHUD() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('bugsKilled').textContent = bugsKilled;
+            document.getElementById('wave').textContent = wave;
+            document.getElementById('agentsAlive').textContent = agents.filter(a => a.active).length;
+            
+            // Update wave description
+            const waveInfo = waveDescriptions[(wave - 1) % waveDescriptions.length];
+            document.getElementById('currentFile').textContent = waveInfo.file;
+            document.getElementById('waveDescription').textContent = `Wave ${wave}: ${waveInfo.desc}`;
+        }
+
+        function addLog(message, type = 'success') {
+            const log = document.getElementById('log');
+            const item = document.createElement('div');
+            item.className = `log-item ${type}`;
+            item.textContent = message;
+            log.insertBefore(item, log.firstChild);
+            
+            // Keep only last 20 items
+            while (log.children.length > 20) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            // Clear canvas
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw stars background
+            for (let i = 0; i < 100; i++) {
+                const x = (i * 37) % canvas.width;
+                const y = (i * 53 + Date.now() / 20) % canvas.height;
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(x, y, 2, 2);
+            }
+
+            // Update and draw bugs
+            bugs.forEach(bug => {
+                if (!bug.alive) return;
+
+                bug.y += bug.speed;
+
+                // Draw bug
+                ctx.font = '40px Arial';
+                if (bug.highlighted) {
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = bug.color;
+                }
+                ctx.fillText(bug.icon, bug.x, bug.y);
+                ctx.shadowBlur = 0;
+
+                // Check if bug reached bottom (game over for that lane)
+                if (bug.y > canvas.height) {
+                    bug.alive = false;
+                }
+            });
+
+            // Update and draw lasers
+            lasers = lasers.filter(laser => {
+                laser.y -= laser.speed;
+
+                // Draw laser
+                ctx.strokeStyle = laser.color;
+                ctx.lineWidth = 3;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = laser.color;
+                ctx.beginPath();
+                ctx.moveTo(laser.x, laser.y);
+                ctx.lineTo(laser.x, laser.y + 20);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                // Check collision with bugs
+                let hit = false;
+                bugs.forEach(bug => {
+                    if (bug.alive && 
+                        laser.x > bug.x && laser.x < bug.x + 40 &&
+                        laser.y > bug.y - 40 && laser.y < bug.y) {
+                        
+                        // Hit!
+                        bug.alive = false;
+                        hit = true;
+                        score += bug.points;
+                        bugsKilled++;
+                        updateHUD();
+
+                        // Create explosion
+                        explosions.push({
+                            x: bug.x,
+                            y: bug.y,
+                            frame: 0,
+                            color: bug.color
+                        });
+
+                        explosionSound();
+                        addLog(`💥 ${bug.type} destroyed! +${bug.points}`, 'success');
+                    }
+                });
+
+                return laser.y > 0 && !hit;
+            });
+
+            // Draw explosions
+            explosions = explosions.filter(exp => {
+                exp.frame++;
+                
+                const radius = exp.frame * 3;
+                ctx.strokeStyle = exp.color;
+                ctx.lineWidth = 3;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = exp.color;
+                ctx.beginPath();
+                ctx.arc(exp.x + 20, exp.y - 20, radius, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                return exp.frame < 15;
+            });
+
+            // Draw agent ships
+            agents.forEach(agent => {
+                if (!agent.active) return;
+
+                // Draw spaceship body (triangle)
+                ctx.fillStyle = agent.color;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = agent.color;
+                
+                ctx.beginPath();
+                ctx.moveTo(agent.x + 20, agent.y - 20); // Top point
+                ctx.lineTo(agent.x, agent.y + 10);      // Bottom left
+                ctx.lineTo(agent.x + 40, agent.y + 10); // Bottom right
+                ctx.closePath();
+                ctx.fill();
+
+                // Draw ship wings
+                ctx.fillStyle = agent.color;
+                ctx.fillRect(agent.x - 5, agent.y, 10, 5);
+                ctx.fillRect(agent.x + 35, agent.y, 10, 5);
+
+                // Draw cockpit
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(agent.x + 20, agent.y - 5, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.shadowBlur = 0;
+
+                // Draw agent icon on ship
+                ctx.font = '20px Arial';
+                ctx.fillText(agent.icon, agent.x + 10, agent.y);
+
+                // Draw ship name
+                ctx.font = '12px Courier New';
+                ctx.fillStyle = agent.color;
+                ctx.fillText(agent.name, agent.x - 10, agent.y + 25);
+            });
+
+            // Check if all bugs destroyed
+            const aliveBugs = bugs.filter(b => b.alive).length;
+            if (aliveBugs === 0 && bugs.length > 0 && !waveCleared) {
+                waveCleared = true;
+                setTimeout(() => {
+                    const waveInfo = getWaveInfo(wave);
+                    commanderSpeak(`🎉 Excellent work! ${waveInfo.target} neutralized!`);
+                    addLog('🎉 Wave cleared! Click NEXT WAVE to continue...', 'success');
+                    document.getElementById('nextBtn').style.display = 'inline-block';
+                    document.getElementById('nextBtn').disabled = false;
+                    document.getElementById('instruction').innerHTML = '👆 WAVE CLEAR! Click "NEXT WAVE"';
+                    document.getElementById('instruction').style.display = 'block';
+                }, 1000);
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function restartGame() {
+            score = 0;
+            bugsKilled = 0;
+            wave = 1;
+            bugs = [];
+            lasers = [];
+            explosions = [];
+            scanned = false;
+            waveCleared = false;
+            agents.forEach(a => a.active = true);
+            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('scanBtn').disabled = false;
+            document.getElementById('fixBtn').disabled = true;
+            document.getElementById('nextBtn').style.display = 'none';
+            updateHUD();
+            startGame();
+        }
+
+        // Auto-fire randomly (only if not scanned yet - for demo effect)
+        setInterval(() => {
+            if (gameRunning && !scanned && Math.random() < 0.2) {
+                const activeAgents = agents.filter(a => a.active);
+                if (activeAgents.length > 0) {
+                    const agent = activeAgents[Math.floor(Math.random() * activeAgents.length)];
+                    shootLaser(agent);
+                }
+            }
+        }, 2000);
+
+        // Initialize
+        updateHUD();
+    </script>
+</body>
+</html>

@@ -10,6 +10,7 @@ const APIScanner = require('./lib/api-scanner');
 const OOPScanner = require('./lib/oop-scanner');
 const ChatParticipant = require('./lib/chat-participant');
 const ContextLoader = require('./lib/context-loader');
+const DashboardPanel = require('./lib/dashboard-panel');
 
 let securityScanner;
 let errorHandlingScanner;
@@ -23,6 +24,7 @@ let licenseValidator;
 let diagnosticCollection;
 let contextLoader;
 let projectContext;
+let dashboardPanel;
 
 /**
  * Activates the extension
@@ -41,6 +43,7 @@ function activate(context) {
     autoFixer = new AutoFixer();
     licenseValidator = new LicenseValidator(context);
     contextLoader = new ContextLoader();
+    dashboardPanel = new DashboardPanel(context);
     
     // Auto-load project context from memory-bank
     contextLoader.loadProjectContext().then(ctx => {
@@ -85,6 +88,12 @@ function activate(context) {
             showContextWelcome(context);
         }, 2000); // Wait 2 seconds for workspace to fully load
     }
+
+    // ==================== COMMAND: Show Dashboard ====================
+    let showDashboardCommand = vscode.commands.registerCommand('aiDevEngineer.showDashboard', () => {
+        dashboardPanel.show();
+    });
+    context.subscriptions.push(showDashboardCommand);
 
     // ==================== COMMAND: Scan Current File ====================
     let scanFileCommand = vscode.commands.registerCommand('aiDevEngineer.scanFile', async () => {
@@ -339,18 +348,6 @@ function activate(context) {
         }
 
         vscode.window.showInformationMessage('🚧 Test generation coming in v1.1!');
-    });
-
-    // ==================== COMMAND: Show Dashboard ====================
-    let showDashboardCommand = vscode.commands.registerCommand('aiDevEngineer.showDashboard', () => {
-        const panel = vscode.window.createWebviewPanel(
-            'securityDashboard',
-            'Security Dashboard',
-            vscode.ViewColumn.One,
-            { enableScripts: true }
-        );
-
-        panel.webview.html = getDashboardHTML();
     });
 
     // ==================== COMMAND: Load Project Context ====================
