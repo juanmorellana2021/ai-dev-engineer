@@ -70,6 +70,14 @@
       {
         "command": "aiDevEngineer.validateDatabase",
         "title": "AI Dev: Validate Database Queries"
+      },
+      {
+        "command": "aiDevEngineer.swarmAnalysis",
+        "title": "🧠 AI Swarm: Full Multi-Agent Analysis (Pre-Deployment Check)"
+      },
+      {
+        "command": "aiDevEngineer.showSwarmDashboard",
+        "title": "🧠 AI Swarm: Show Neural Network Dashboard"
       }
     ],
     "chatParticipants": [
@@ -95,6 +103,14 @@
           {
             "name": "test",
             "description": "Generate unit tests"
+          },
+          {
+            "name": "swarm",
+            "description": "Run full multi-agent swarm analysis (12 agents + voting)"
+          },
+          {
+            "name": "deploy",
+            "description": "Pre-deployment safety check (Commander decision)"
           }
         ]
       }

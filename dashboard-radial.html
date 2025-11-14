@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swarm Commander - Command Center</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
+            background: #0a0e27;
+            color: #e2e8f0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-bottom: 2px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            color: #60a5fa;
+            margin-bottom: 10px;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            font-size: 0.9em;
+            color: #94a3b8;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-item strong {
+            color: #60a5fa;
+        }
+
+        /* Canvas Container */
+        .command-center {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 120px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Commander - Center (Neural Hub) */
+        .commander {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 110px;
+            height: 110px;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 3px solid #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            box-shadow: 0 0 40px rgba(59, 130, 246, 0.6);
+            animation: commanderPulse 3s infinite;
+        }
+
+        @keyframes commanderPulse {
+            0%, 100% { box-shadow: 0 0 40px rgba(59, 130, 246, 0.6); }
+            50% { box-shadow: 0 0 70px rgba(59, 130, 246, 0.9); }
+        }
+
+        .commander-icon {
+            font-size: 2em;
+            margin-bottom: 3px;
+        }
+
+        .commander-title {
+            font-size: 0.65em;
+            font-weight: bold;
+            color: #60a5fa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .commander-status {
+            font-size: 0.5em;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        /* Agents - Neural Nodes */
+        .agent {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 5;
+        }
+
+        .agent:hover {
+            transform: scale(1.1);
+            border-color: #60a5fa;
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+        }
+
+        .agent.idle {
+            border-color: #64748b;
+            opacity: 0.7;
+        }
+
+        .agent.running {
+            border-color: #3b82f6;
+            animation: agentRunning 1s infinite;
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+        }
+
+        .agent.pass {
+            border-color: #10b981;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+        }
+
+        .agent.warn {
+            border-color: #f59e0b;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+        }
+
+        .agent.fail {
+            border-color: #ef4444;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+        }
+
+        @keyframes agentRunning {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .agent-icon {
+            font-size: 1.5em;
+            margin-bottom: 2px;
+        }
+
+        .agent-name {
+            font-size: 0.55em;
+            color: #e2e8f0;
+            text-align: center;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .agent-status {
+            font-size: 0.45em;
+            color: #94a3b8;
+            margin-top: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Communication Lines - Dual Lines for bidirectional traffic */
+        .comm-line-out {
+            stroke: #334155;
+            stroke-width: 1.5;
+            fill: none;
+            transition: all 0.3s ease;
+        }
+
+        .comm-line-in {
+            stroke: #334155;
+            stroke-width: 1.5;
+            fill: none;
+            transition: all 0.3s ease;
+        }
+
+        .comm-line-out.active {
+            stroke: #3b82f6;
+            stroke-width: 2.5;
+            filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.8));
+            animation: commSend 1.5s infinite;
+        }
+
+        .comm-line-in.active {
+            stroke: #10b981;
+            stroke-width: 2.5;
+            filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.8));
+            animation: commReceive 1.5s infinite;
+        }
+
+        .comm-line-out.error,
+        .comm-line-in.error {
+            stroke: #ef4444;
+            stroke-width: 2.5;
+            animation: commError 0.5s infinite;
+        }
+
+        @keyframes commSend {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: -20; }
+        }
+
+        @keyframes commReceive {
+            0% { stroke-dashoffset: -20; }
+            100% { stroke-dashoffset: 0; }
+        }
+
+        @keyframes commError {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Data packets traveling on lines */
+        .data-packet {
+            fill: #60a5fa;
+            filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.9));
+        }
+
+        /* Control Panel */
+        .control-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, transparent, #0a0e27 20%);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            z-index: 20;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            background: #3b82f6;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn.success {
+            background: #10b981;
+        }
+
+        .btn.success:hover {
+            background: #059669;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Message Display */
+        .message-display {
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            max-width: 600px;
+            background: rgba(30, 41, 59, 0.95);
+            border: 2px solid #3b82f6;
+            border-radius: 12px;
+            padding: 20px;
+            z-index: 15;
+            display: none;
+            animation: messageSlide 0.3s;
+        }
+
+        @keyframes messageSlide {
+            from { transform: translate(-50%, -20px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        .message-display.show {
+            display: block;
+        }
+
+        .message-from {
+            font-size: 0.8em;
+            color: #60a5fa;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .message-text {
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        /* Legend */
+        .legend {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 15px;
+            z-index: 15;
+            font-size: 0.85em;
+        }
+
+        .legend-title {
+            color: #60a5fa;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            color: #94a3b8;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧠 NEURAL SWARM NETWORK</h1>
+        <div class="status-bar">
+            <div class="status-item">
+                <span>Neural Signals:</span>
+                <strong id="reportsCount">0/12</strong>
+            </div>
+            <div class="status-item">
+                <span>Network Health:</span>
+                <strong id="confidenceScore">0%</strong>
+            </div>
+            <div class="status-item">
+                <span>Status:</span>
+                <strong id="systemStatus">IDLE</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="command-center">
+        <svg id="commLines"></svg>
+        
+        <!-- Commander Center - Neural Hub -->
+        <div class="commander">
+            <div class="commander-icon">🧠</div>
+            <div class="commander-title">Neural Hub</div>
+            <div class="commander-status" id="commanderStatus">Standing By</div>
+        </div>
+
+        <!-- Agents will be positioned in circle -->
+        <div id="agentsContainer"></div>
+    </div>
+
+    <div class="message-display" id="messageDisplay">
+        <div class="message-from" id="messageFrom"></div>
+        <div class="message-text" id="messageText"></div>
+    </div>
+
+    <div class="legend">
+        <div class="legend-title">Neural Signals</div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #3b82f6;"></div>
+            <span>Commander → Agent</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #10b981;"></div>
+            <span>Agent → Commander</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #ef4444;"></div>
+            <span>Error Signal</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #64748b;"></div>
+            <span>Idle</span>
+        </div>
+    </div>
+
+    <div class="control-panel">
+        <button class="btn" onclick="startAnalysis()">🔍 Run Analysis</button>
+        <button class="btn success" id="deployBtn" onclick="deploy()" disabled>🚀 Deploy</button>
+        <button class="btn" onclick="reset()">🔄 Reset</button>
+    </div>
+
+    <script>
+        const agents = [
+            { id: 'bughunter', name: 'BugHunter', icon: '🔍', status: 'idle' },
+            { id: 'backup', name: 'BackupFinder', icon: '📚', status: 'idle' },
+            { id: 'merger', name: 'CodeMerger', icon: '⚔️', status: 'idle' },
+            { id: 'architecture', name: 'Architecture', icon: '🏗️', status: 'idle' },
+            { id: 'filestructure', name: 'FileStructure', icon: '🔗', status: 'idle' },
+            { id: 'backend', name: 'Backend', icon: '🔗', status: 'idle' },
+            { id: 'database', name: 'Database', icon: '💾', status: 'idle' },
+            { id: 'input', name: 'InputValidator', icon: '🧹', status: 'idle' },
+            { id: 'form', name: 'FormHardener', icon: '🔐', status: 'idle' },
+            { id: 'ui', name: 'UIEnhancer', icon: '🎨', status: 'idle' },
+            { id: 'security', name: 'SecurityGuard', icon: '🛡️', status: 'idle' },
+            { id: 'deployer', name: 'Deployer', icon: '🚀', status: 'idle' }
+        ];
+
+        const centerX = window.innerWidth / 2;
+        const centerY = (window.innerHeight - 200) / 2 + 100;
+        const radius = 220; // Even smaller for better fit with buttons visible
+
+        function positionAgents() {
+            const container = document.getElementById('agentsContainer');
+            const svg = document.getElementById('commLines');
+            svg.innerHTML = '';
+            container.innerHTML = '';
+
+            agents.forEach((agent, index) => {
+                const angle = (index * (360 / agents.length)) * (Math.PI / 180) - (Math.PI / 2);
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
+
+                // Create agent element
+                const agentEl = document.createElement('div');
+                agentEl.className = `agent ${agent.status}`;
+                agentEl.id = `agent-${agent.id}`;
+                agentEl.style.left = `${x}px`;
+                agentEl.style.top = `${y}px`;
+                agentEl.style.transform = 'translate(-50%, -50%)';
+                agentEl.innerHTML = `
+                    <div class="agent-icon">${agent.icon}</div>
+                    <div class="agent-name">${agent.name}</div>
+                    <div class="agent-status">${agent.status}</div>
+                `;
+                container.appendChild(agentEl);
+
+                // Calculate offset for dual lines (parallel lines with small gap)
+                const dx = x - centerX;
+                const dy = y - centerY;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                const offsetX = (-dy / length) * 2; // Perpendicular offset
+                const offsetY = (dx / length) * 2;
+
+                // Create OUTGOING line (Commander → Agent) - Blue
+                const lineOut = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                lineOut.setAttribute('x1', centerX + offsetX);
+                lineOut.setAttribute('y1', centerY + offsetY);
+                lineOut.setAttribute('x2', x + offsetX);
+                lineOut.setAttribute('y2', y + offsetY);
+                lineOut.setAttribute('class', 'comm-line-out');
+                lineOut.setAttribute('id', `line-out-${agent.id}`);
+                lineOut.setAttribute('stroke-dasharray', '5,5');
+                svg.appendChild(lineOut);
+
+                // Create INCOMING line (Agent → Commander) - Green
+                const lineIn = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                lineIn.setAttribute('x1', centerX - offsetX);
+                lineIn.setAttribute('y1', centerY - offsetY);
+                lineIn.setAttribute('x2', x - offsetX);
+                lineIn.setAttribute('y2', y - offsetY);
+                lineIn.setAttribute('class', 'comm-line-in');
+                lineIn.setAttribute('id', `line-in-${agent.id}`);
+                lineIn.setAttribute('stroke-dasharray', '5,5');
+                svg.appendChild(lineIn);
+
+                agent.position = { x, y };
+            });
+        }
+
+        function showMessage(from, text) {
+            const display = document.getElementById('messageDisplay');
+            const fromEl = document.getElementById('messageFrom');
+            const textEl = document.getElementById('messageText');
+
+            fromEl.textContent = from;
+            textEl.textContent = text;
+            display.classList.add('show');
+
+            setTimeout(() => {
+                display.classList.remove('show');
+            }, 3000);
+        }
+
+        function updateCommLine(agentId, state) {
+            const lineOut = document.getElementById(`line-out-${agentId}`);
+            const lineIn = document.getElementById(`line-in-${agentId}`);
+            
+            if (lineOut && lineIn) {
+                // Reset both
+                lineOut.setAttribute('class', 'comm-line-out');
+                lineIn.setAttribute('class', 'comm-line-in');
+                
+                if (state === 'sending') {
+                    // Agent sending to Commander (green line active)
+                    lineIn.setAttribute('class', 'comm-line-in active');
+                } else if (state === 'receiving') {
+                    // Commander sending to Agent (blue line active)
+                    lineOut.setAttribute('class', 'comm-line-out active');
+                } else if (state === 'error') {
+                    // Both lines show error
+                    lineOut.setAttribute('class', 'comm-line-out error');
+                    lineIn.setAttribute('class', 'comm-line-in error');
+                } else if (state === 'active') {
+                    // Both lines active (bidirectional)
+                    lineOut.setAttribute('class', 'comm-line-out active');
+                    lineIn.setAttribute('class', 'comm-line-in active');
+                }
+            }
+        }
+
+        async function startAnalysis() {
+            document.getElementById('commanderStatus').textContent = 'ANALYZING';
+            document.getElementById('systemStatus').textContent = 'ANALYZING';
+            showMessage('👑 Commander', 'All units, begin analysis sweep!');
+
+            let reportsReceived = 0;
+
+            for (let i = 0; i < agents.length; i++) {
+                const agent = agents[i];
+                
+                // Commander sends order
+                updateCommLine(agent.id, 'receiving');
+                showMessage('👑 Commander', `${agent.name}, you have the bridge. Begin analysis.`);
+                
+                agent.status = 'running';
+                updateAgent(agent);
+                
+                await sleep(800);
+                
+                // Agent sends report back
+                updateCommLine(agent.id, 'sending');
+                
+                // Simulate analysis
+                const random = Math.random();
+                if (agent.id === 'filestructure') {
+                    agent.status = 'fail';
+                    updateCommLine(agent.id, 'error');
+                    showMessage(`${agent.icon} ${agent.name}`, 'CRITICAL: 2 broken file references detected!');
+                } else if (agent.id === 'architecture') {
+                    agent.status = 'warn';
+                    updateCommLine(agent.id, 'active');
+                    showMessage(`${agent.icon} ${agent.name}`, 'WARNING: 2 architecture issues found.');
+                } else {
+                    agent.status = 'pass';
+                    updateCommLine(agent.id, 'active');
+                    showMessage(`${agent.icon} ${agent.name}`, 'All clear. No issues detected.');
+                }
+                
+                updateAgent(agent);
+                reportsReceived++;
+                document.getElementById('reportsCount').textContent = `${reportsReceived}/12`;
+                
+                await sleep(1000);
+                
+                // Commander acknowledges
+                showMessage('👑 Commander', `Copy that, ${agent.name}. Stand by.`);
+                updateCommLine(agent.id, '');
+                
+                await sleep(500);
+            }
+
+            // Final decision
+            const critical = agents.filter(a => a.status === 'fail').length;
+            const warnings = agents.filter(a => a.status === 'warn').length;
+            const passed = agents.filter(a => a.status === 'pass').length;
+            const confidence = Math.round((passed / agents.length) * 100);
+            
+            document.getElementById('confidenceScore').textContent = `${confidence}%`;
+            
+            if (critical > 0) {
+                document.getElementById('commanderStatus').textContent = 'BLOCKED';
+                document.getElementById('systemStatus').textContent = 'BLOCKED';
+                showMessage('👑 Commander', `DEPLOYMENT BLOCKED! ${critical} critical issues detected. Broken file references will cascade failures. Fix immediately!`);
+                
+                // Show error lines for failed agents
+                agents.forEach(agent => {
+                    if (agent.status === 'fail') {
+                        updateCommLine(agent.id, 'error');
+                    }
+                });
+            } else if (warnings > 0) {
+                document.getElementById('commanderStatus').textContent = 'CAUTION';
+                document.getElementById('systemStatus').textContent = 'REVIEW NEEDED';
+                showMessage('👑 Commander', `Proceed with caution. ${warnings} warnings detected. Monitor closely after deployment.`);
+                document.getElementById('deployBtn').disabled = false;
+            } else {
+                document.getElementById('commanderStatus').textContent = 'APPROVED';
+                document.getElementById('systemStatus').textContent = 'ALL CLEAR';
+                showMessage('👑 Commander', 'All systems green! Full deployment approved. Execute when ready!');
+                document.getElementById('deployBtn').disabled = false;
+                
+                // Show success lines
+                agents.forEach(agent => {
+                    updateCommLine(agent.id, 'active');
+                });
+            }
+        }
+
+        function updateAgent(agent) {
+            const el = document.getElementById(`agent-${agent.id}`);
+            if (el) {
+                el.className = `agent ${agent.status}`;
+                el.querySelector('.agent-status').textContent = agent.status.toUpperCase();
+            }
+        }
+
+        function deploy() {
+            showMessage('🚀 Deployer', 'Deploying to production...');
+            // Add deployment logic
+        }
+
+        function reset() {
+            agents.forEach(agent => {
+                agent.status = 'idle';
+                updateAgent(agent);
+                updateCommLine(agent.id, '');
+            });
+            
+            document.getElementById('commanderStatus').textContent = 'Standing By';
+            document.getElementById('systemStatus').textContent = 'IDLE';
+            document.getElementById('reportsCount').textContent = '0/12';
+            document.getElementById('confidenceScore').textContent = '0%';
+            document.getElementById('deployBtn').disabled = true;
+            showMessage('🧠 Neural Hub', 'System reset. Neural network ready.');
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Initialize
+        window.addEventListener('resize', positionAgents);
+        positionAgents();
+    </script>
+</body>
+</html>
